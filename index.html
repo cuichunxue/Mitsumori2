@@ -683,6 +683,17 @@
       }
     }
 
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+
     .toast-success {
       border-left: 4px solid #10b981;
     }
@@ -887,6 +898,17 @@
     // ========================
     // Utility Functions
     // ========================
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
     function uuid() {
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         const r = Math.random() * 16 | 0;
@@ -932,10 +954,35 @@
       const lines = text.trim().split('\n');
       if (lines.length === 0) return { headers: [], rows: [] };
 
-      const headers = lines[0].split(',').map(h => h.trim());
-      const rows = lines.slice(1).map(line =>
-        line.split(',').map(cell => cell.trim())
-      );
+      function parseLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const nextChar = line[i + 1];
+
+          if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+              current += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      }
+
+      const headers = parseLine(lines[0]);
+      const rows = lines.slice(1).map(line => parseLine(line));
 
       return { headers, rows };
     }
@@ -1107,6 +1154,11 @@
       },
 
       navigate(hash) {
+        if (window.location.hash !== hash) {
+          window.location.hash = hash;
+          return;
+        }
+
         this.currentRoute = hash;
         const routes = {
           '#login': () => this.renderLogin(),
@@ -1148,6 +1200,15 @@
         this.navigate('#login');
       },
 
+      getUnreadCount() {
+        if (!this.currentUser || this.currentUser.role !== 'wholesaler') return 0;
+
+        const requests = dataStore.getQuoteRequests()
+          .filter(r => r.wholesalerName === this.currentUser.company && r.status === 'quoted');
+
+        return requests.filter(r => !dataStore.isRead(this.currentUser.company, r.id)).length;
+      },
+
       updateHeader() {
         const header = document.getElementById('app-header');
         const navTabs = document.getElementById('nav-tabs');
@@ -1161,6 +1222,7 @@
         header.classList.remove('hidden');
         userBadge.textContent = `${this.currentUser.role === 'manufacturer' ? 'メーカー' : '問屋'} - ${this.currentUser.company}`;
 
+        const unreadCount = this.getUnreadCount();
         const tabs = this.currentUser.role === 'manufacturer'
           ? [
               { hash: '#products/register', label: '商品登録' },
@@ -1169,13 +1231,14 @@
             ]
           : [
               { hash: '#catalog', label: '商品カタログ' },
-              { hash: '#requests/sent', label: '送信済み見積依頼' }
+              { hash: '#requests/sent', label: '送信済み見積依頼', badge: unreadCount }
             ];
 
         navTabs.innerHTML = tabs.map(tab => `
           <button class="nav-tab ${this.currentRoute === tab.hash ? 'active' : ''}"
                   onclick="app.navigate('${tab.hash}')">
             ${tab.label}
+            ${tab.badge && tab.badge > 0 ? `<span class="badge-count">${tab.badge}</span>` : ''}
           </button>
         `).join('');
       },
@@ -1368,7 +1431,18 @@
 
         const preview = document.getElementById('image-preview');
         preview.className = 'image-preview';
-        preview.innerHTML = `<img src="data:${file.type};base64,${base64}" alt="プレビュー">`;
+        preview.innerHTML = `
+          <div style="position: relative; display: inline-block;">
+            <img src="data:${file.type};base64,${base64}" alt="プレビュー">
+            <button type="button" class="btn btn-danger" style="position: absolute; top: 0.5rem; right: 0.5rem;" onclick="app.removeImage()">削除</button>
+          </div>
+        `;
+      },
+
+      removeImage() {
+        this.productFormData.image = null;
+        document.getElementById('image-preview').className = 'image-preview hidden';
+        document.getElementById('image-input').value = '';
       },
 
       handleFilesDrop(e) {
@@ -1409,7 +1483,7 @@
 
       renderFilesList() {
         const container = document.getElementById('files-list');
-        if (this.productFormData.files.length === 0) {
+        if (!this.productFormData || this.productFormData.files.length === 0) {
           container.innerHTML = '';
           return;
         }
@@ -1419,7 +1493,7 @@
             <div class="file-info">
               <div class="file-icon">${file.mime.includes('pdf') ? '📕' : '📊'}</div>
               <div class="file-details">
-                <div class="file-name">${file.filename}</div>
+                <div class="file-name">${escapeHtml(file.filename)}</div>
                 <div class="file-size">${formatFileSize(file.size)}</div>
               </div>
             </div>
@@ -1499,20 +1573,20 @@
                 <div class="product-card">
                   <div class="product-card-image">
                     ${p.imageBase64
-                      ? `<img src="data:${p.imageMime};base64,${p.imageBase64}" alt="${p.productName}">`
+                      ? `<img src="data:${escapeHtml(p.imageMime)};base64,${p.imageBase64}" alt="${escapeHtml(p.productName)}">`
                       : '🍬'
                     }
                   </div>
                   <div class="product-card-content">
-                    <div class="product-card-title">${p.productName}</div>
+                    <div class="product-card-title">${escapeHtml(p.productName)}</div>
                     <div class="product-card-meta">
-                      <span class="badge badge-primary">${p.category}</span>
+                      <span class="badge badge-primary">${escapeHtml(p.category)}</span>
                     </div>
                     <div class="product-card-price">¥${p.price.toLocaleString()}</div>
                     <div class="product-card-meta">ロット: ${p.lotSize}個</div>
                     <div class="flex gap-1 mt-2">
-                      <button class="btn btn-primary" onclick="app.navigate('#detail/product/${p.id}')">詳細</button>
-                      <button class="btn btn-danger" onclick="app.deleteProduct('${p.id}')">削除</button>
+                      <button class="btn btn-primary" onclick="app.navigate('#detail/product/${escapeHtml(p.id)}')">詳細</button>
+                      <button class="btn btn-danger" onclick="app.deleteProduct('${escapeHtml(p.id)}')">削除</button>
                     </div>
                   </div>
                 </div>
@@ -1598,9 +1672,9 @@
                 <tbody>
                   ${this.filterRequests(requests).map(r => `
                     <tr>
-                      <td>${r.id.substring(0, 8)}</td>
-                      <td>${r.productName}</td>
-                      <td>${r.wholesalerName}</td>
+                      <td>${escapeHtml(r.id.substring(0, 8))}</td>
+                      <td>${escapeHtml(r.productName)}</td>
+                      <td>${escapeHtml(r.wholesalerName)}</td>
                       <td>${formatDate(r.createdAt)}</td>
                       <td>
                         ${r.status === 'pending'
@@ -1609,7 +1683,7 @@
                         }
                       </td>
                       <td>
-                        <button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細</button>
+                        <button class="btn btn-primary" onclick="app.navigate('#detail/request/${escapeHtml(r.id)}')">詳細</button>
                       </td>
                     </tr>
                   `).join('')}
@@ -1698,18 +1772,18 @@
             </div>
             <div class="product-grid">
               ${this.filterAndSortProducts(products).map(p => `
-                <div class="product-card" onclick="app.navigate('#detail/product/${p.id}')">
+                <div class="product-card" onclick="app.navigate('#detail/product/${escapeHtml(p.id)}')">
                   <div class="product-card-image">
                     ${p.imageBase64
-                      ? `<img src="data:${p.imageMime};base64,${p.imageBase64}" alt="${p.productName}">`
+                      ? `<img src="data:${escapeHtml(p.imageMime)};base64,${p.imageBase64}" alt="${escapeHtml(p.productName)}">`
                       : '🍬'
                     }
                   </div>
                   <div class="product-card-content">
-                    <div class="product-card-title">${p.productName}</div>
+                    <div class="product-card-title">${escapeHtml(p.productName)}</div>
                     <div class="product-card-meta">
-                      <span class="badge badge-gray">${p.manufacturerName}</span>
-                      <span class="badge badge-primary">${p.category}</span>
+                      <span class="badge badge-gray">${escapeHtml(p.manufacturerName)}</span>
+                      <span class="badge badge-primary">${escapeHtml(p.category)}</span>
                     </div>
                     <div class="product-card-price">¥${p.price.toLocaleString()}</div>
                     <div class="product-card-meta">ロット: ${p.lotSize}個</div>
@@ -1784,23 +1858,23 @@
 
             ${product.imageBase64 ? `
               <div class="detail-section">
-                <img src="data:${product.imageMime};base64,${product.imageBase64}" alt="${product.productName}" class="detail-image">
+                <img src="data:${escapeHtml(product.imageMime)};base64,${product.imageBase64}" alt="${escapeHtml(product.productName)}" class="detail-image">
               </div>
             ` : ''}
 
             <div class="detail-section">
               <div class="detail-label">商品名</div>
-              <div class="detail-value" style="font-size: 1.5rem; font-weight: bold;">${product.productName}</div>
+              <div class="detail-value" style="font-size: 1.5rem; font-weight: bold;">${escapeHtml(product.productName)}</div>
             </div>
 
             <div class="detail-section">
               <div class="detail-label">メーカー</div>
-              <div class="detail-value">${product.manufacturerName}</div>
+              <div class="detail-value">${escapeHtml(product.manufacturerName)}</div>
             </div>
 
             <div class="detail-section">
               <div class="detail-label">カテゴリ</div>
-              <div class="detail-value"><span class="badge badge-primary">${product.category}</span></div>
+              <div class="detail-value"><span class="badge badge-primary">${escapeHtml(product.category)}</span></div>
             </div>
 
             <div class="detail-section">
@@ -1816,7 +1890,7 @@
             ${product.description ? `
               <div class="detail-section">
                 <div class="detail-label">商品説明</div>
-                <div class="detail-value">${product.description}</div>
+                <div class="detail-value">${escapeHtml(product.description)}</div>
               </div>
             ` : ''}
 
@@ -1829,15 +1903,15 @@
                       <div class="file-info">
                         <div class="file-icon">${file.mime.includes('pdf') ? '📕' : '📊'}</div>
                         <div class="file-details">
-                          <div class="file-name">${file.filename}</div>
+                          <div class="file-name">${escapeHtml(file.filename)}</div>
                           <div class="file-size">${formatFileSize(file.size)}</div>
                         </div>
                       </div>
                       <div class="file-actions">
                         ${file.filename.endsWith('.csv') ? `
-                          <button class="btn btn-outline" onclick="app.previewCsv('${file.base64}', '${file.filename}')">プレビュー</button>
+                          <button class="btn btn-outline" onclick="app.previewCsv('${file.base64}', '${escapeHtml(file.filename)}')">プレビュー</button>
                         ` : ''}
-                        <button class="btn btn-primary" onclick="downloadFile('${file.base64}', '${file.filename}', '${file.mime}')">ダウンロード</button>
+                        <button class="btn btn-primary" onclick="downloadFile('${file.base64}', '${escapeHtml(file.filename)}', '${escapeHtml(file.mime)}')">ダウンロード</button>
                       </div>
                     </div>
                   `).join('')}
@@ -1852,7 +1926,7 @@
 
             ${this.currentUser.role === 'wholesaler' ? `
               <div class="detail-section">
-                <button class="btn btn-success btn-block" onclick="app.showQuoteRequestModal('${product.id}')">この商品に見積依頼を送る</button>
+                <button class="btn btn-success btn-block" onclick="app.showQuoteRequestModal('${escapeHtml(product.id)}')">この商品に見積依頼を送る</button>
               </div>
             ` : ''}
           </div>
@@ -1866,9 +1940,9 @@
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.innerHTML = `
-          <div class="modal">
+          <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-header">
-              <h3 class="modal-title">CSVプレビュー: ${filename}</h3>
+              <h3 class="modal-title">CSVプレビュー: ${escapeHtml(filename)}</h3>
               <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
             </div>
             <div class="modal-body">
@@ -1876,13 +1950,13 @@
                 <table>
                   <thead>
                     <tr>
-                      ${csvData.headers.map(h => `<th>${h}</th>`).join('')}
+                      ${csvData.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}
                     </tr>
                   </thead>
                   <tbody>
                     ${csvData.rows.slice(0, 100).map(row => `
                       <tr>
-                        ${row.map(cell => `<td>${cell}</td>`).join('')}
+                        ${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}
                       </tr>
                     `).join('')}
                   </tbody>
@@ -1891,11 +1965,22 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-primary" onclick="downloadFile('${base64}', '${filename}', 'text/csv')">ダウンロード</button>
+              <button class="btn btn-primary" onclick="downloadFile('${base64}', '${escapeHtml(filename)}', 'text/csv')">ダウンロード</button>
               <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">閉じる</button>
             </div>
           </div>
         `;
+
+        modal.onclick = (e) => {
+          if (e.target === modal) modal.remove();
+        };
+
+        document.addEventListener('keydown', function escHandler(e) {
+          if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', escHandler);
+          }
+        });
 
         document.body.appendChild(modal);
       },
@@ -1906,7 +1991,7 @@
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.innerHTML = `
-          <div class="modal">
+          <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-header">
               <h3 class="modal-title">見積依頼を送信</h3>
               <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
@@ -1915,11 +2000,11 @@
               <form id="quote-request-form">
                 <div class="form-group">
                   <label class="form-label">商品名</label>
-                  <input type="text" class="form-input" value="${product.productName}" disabled>
+                  <input type="text" class="form-input" value="${escapeHtml(product.productName)}" disabled>
                 </div>
                 <div class="form-group">
                   <label class="form-label">メーカー</label>
-                  <input type="text" class="form-input" value="${product.manufacturerName}" disabled>
+                  <input type="text" class="form-input" value="${escapeHtml(product.manufacturerName)}" disabled>
                 </div>
                 <div class="form-group">
                   <label class="form-label">希望数量<span class="form-required">*</span></label>
@@ -1936,11 +2021,22 @@
               </form>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-success" onclick="app.submitQuoteRequest('${productId}')">見積依頼を送信</button>
+              <button class="btn btn-success" onclick="app.submitQuoteRequest('${escapeHtml(productId)}')">見積依頼を送信</button>
               <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">キャンセル</button>
             </div>
           </div>
         `;
+
+        modal.onclick = (e) => {
+          if (e.target === modal) modal.remove();
+        };
+
+        document.addEventListener('keydown', function escHandler(e) {
+          if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', escHandler);
+          }
+        });
 
         document.body.appendChild(modal);
       },
@@ -2048,9 +2144,9 @@
                     const hasQuote = r.status === 'quoted';
                     return `
                       <tr>
-                        <td>${r.id.substring(0, 8)}</td>
-                        <td>${r.productName}</td>
-                        <td>${r.manufacturerName}</td>
+                        <td>${escapeHtml(r.id.substring(0, 8))}</td>
+                        <td>${escapeHtml(r.productName)}</td>
+                        <td>${escapeHtml(r.manufacturerName)}</td>
                         <td>${formatDate(r.createdAt)}</td>
                         <td>
                           ${r.status === 'pending'
@@ -2059,7 +2155,7 @@
                           }
                         </td>
                         <td>
-                          <button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細</button>
+                          <button class="btn btn-primary" onclick="app.navigate('#detail/request/${escapeHtml(r.id)}')">詳細</button>
                         </td>
                       </tr>
                     `;
@@ -2226,7 +2322,7 @@
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.innerHTML = `
-          <div class="modal">
+          <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-header">
               <h3 class="modal-title">見積書アップロード</h3>
               <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
@@ -2254,11 +2350,22 @@
               </form>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-success" onclick="app.submitQuote('${requestId}')">見積書を送信</button>
+              <button class="btn btn-success" onclick="app.submitQuote('${escapeHtml(requestId)}')">見積書を送信</button>
               <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">キャンセル</button>
             </div>
           </div>
         `;
+
+        modal.onclick = (e) => {
+          if (e.target === modal) modal.remove();
+        };
+
+        document.addEventListener('keydown', function escHandler(e) {
+          if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', escHandler);
+          }
+        });
 
         document.body.appendChild(modal);
         this.quoteUploadFiles = [];
@@ -2302,7 +2409,7 @@
 
       renderQuoteFilesList() {
         const container = document.getElementById('quote-files-list');
-        if (this.quoteUploadFiles.length === 0) {
+        if (!this.quoteUploadFiles || this.quoteUploadFiles.length === 0) {
           container.innerHTML = '';
           return;
         }
@@ -2312,7 +2419,7 @@
             <div class="file-info">
               <div class="file-icon">${file.mime.includes('pdf') ? '📕' : '📊'}</div>
               <div class="file-details">
-                <div class="file-name">${file.filename}</div>
+                <div class="file-name">${escapeHtml(file.filename)}</div>
                 <div class="file-size">${formatFileSize(file.size)}</div>
               </div>
             </div>
