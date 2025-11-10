@@ -1181,10 +1181,10 @@
         };
 
         if (hash.startsWith('#detail/product/')) {
-          const id = hash.split('/')[3];
+          const id = hash.split('/')[2];
           this.renderProductDetail(id);
         } else if (hash.startsWith('#detail/request/')) {
-          const id = hash.split('/')[3];
+          const id = hash.split('/')[2];
           this.renderRequestDetail(id);
         } else if (routes[hash]) {
           routes[hash]();
