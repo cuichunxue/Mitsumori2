@@ -1,0 +1,2365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お菓子業界 商品・見積管理システム</title>
+  <style>
+    /* Reset & Base */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      color: #111827;
+      background-color: #f9fafb;
+    }
+
+    /* Layout */
+    .app-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background-color: #2563eb;
+      color: white;
+      padding: 1rem 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .nav-tab {
+      padding: 0.5rem 1rem;
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 0.375rem;
+      transition: background-color 0.2s;
+      font-size: 1rem;
+    }
+
+    .nav-tab:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-tab.active {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-badge {
+      padding: 0.5rem 1rem;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+    }
+
+    .btn-logout {
+      padding: 0.5rem 1rem;
+      background-color: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn-logout:hover {
+      background-color: #dc2626;
+    }
+
+    main {
+      flex: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    /* Login Screen */
+    .login-container {
+      max-width: 500px;
+      margin: 4rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .login-title {
+      font-size: 1.875rem;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #2563eb;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #374151;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .form-required {
+      color: #ef4444;
+      margin-left: 0.25rem;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.375rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background-color: #2563eb;
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: #1d4ed8;
+    }
+
+    .btn-success {
+      background-color: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background-color: #059669;
+    }
+
+    .btn-danger {
+      background-color: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background-color: #dc2626;
+    }
+
+    .btn-secondary {
+      background-color: #6b7280;
+      color: white;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background-color: #4b5563;
+    }
+
+    .btn-outline {
+      background-color: white;
+      border: 1px solid #d1d5db;
+      color: #374151;
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      background-color: #f3f4f6;
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      color: #111827;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .product-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .product-card-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      background-color: #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      font-size: 3rem;
+    }
+
+    .product-card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .product-card-content {
+      padding: 1rem;
+    }
+
+    .product-card-title {
+      font-size: 1.125rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: #111827;
+    }
+
+    .product-card-meta {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+
+    .product-card-price {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #2563eb;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Grid */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    thead {
+      background-color: #f3f4f6;
+    }
+
+    th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th:hover {
+      background-color: #e5e7eb;
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    tbody tr {
+      transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+      background-color: #f9fafb;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .badge-primary {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+
+    .badge-warning {
+      background-color: #fed7aa;
+      color: #92400e;
+    }
+
+    .badge-danger {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+
+    .badge-gray {
+      background-color: #f3f4f6;
+      color: #374151;
+    }
+
+    .badge-count {
+      background-color: #ef4444;
+      color: white;
+      min-width: 1.25rem;
+      height: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      margin-left: 0.5rem;
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed #d1d5db;
+      border-radius: 0.5rem;
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.2s;
+      cursor: pointer;
+      background-color: #f9fafb;
+    }
+
+    .dropzone:hover {
+      border-color: #2563eb;
+      background-color: #eff6ff;
+    }
+
+    .dropzone.drag-over {
+      border-color: #2563eb;
+      background-color: #dbeafe;
+    }
+
+    .dropzone-icon {
+      font-size: 3rem;
+      color: #9ca3af;
+      margin-bottom: 1rem;
+    }
+
+    .dropzone-text {
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+
+    .dropzone-hint {
+      font-size: 0.875rem;
+      color: #9ca3af;
+    }
+
+    /* File List */
+    .file-list {
+      margin-top: 1rem;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem;
+      background-color: #f3f4f6;
+      border-radius: 0.375rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex: 1;
+    }
+
+    .file-icon {
+      font-size: 1.5rem;
+    }
+
+    .file-details {
+      flex: 1;
+    }
+
+    .file-name {
+      font-weight: 500;
+      color: #111827;
+      margin-bottom: 0.25rem;
+    }
+
+    .file-size {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    /* Image Preview */
+    .image-preview {
+      margin-top: 1rem;
+      max-width: 100%;
+    }
+
+    .image-preview img {
+      max-width: 100%;
+      max-height: 400px;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    /* Search */
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 250px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+      font-size: 1rem;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 2rem;
+    }
+
+    .pagination-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid #d1d5db;
+      background-color: white;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+      background-color: #f3f4f6;
+    }
+
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .pagination-btn.active {
+      background-color: #2563eb;
+      color: white;
+      border-color: #2563eb;
+    }
+
+    .pagination-info {
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 1rem;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 0.5rem;
+      max-width: 800px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #111827;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #6b7280;
+      padding: 0;
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.375rem;
+    }
+
+    .modal-close:hover {
+      background-color: #f3f4f6;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      padding: 1.5rem;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 5rem;
+      right: 1rem;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .toast {
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+      padding: 1rem 1.5rem;
+      min-width: 300px;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast-success {
+      border-left: 4px solid #10b981;
+    }
+
+    .toast-error {
+      border-left: 4px solid #ef4444;
+    }
+
+    .toast-warning {
+      border-left: 4px solid #f59e0b;
+    }
+
+    .toast-info {
+      border-left: 4px solid #2563eb;
+    }
+
+    .toast-icon {
+      font-size: 1.5rem;
+    }
+
+    .toast-message {
+      flex: 1;
+      color: #111827;
+    }
+
+    /* CSV Preview */
+    .csv-preview {
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+
+    .csv-preview table {
+      font-size: 0.875rem;
+    }
+
+    .csv-preview th,
+    .csv-preview td {
+      white-space: nowrap;
+      padding: 0.5rem;
+    }
+
+    /* Detail View */
+    .detail-section {
+      margin-bottom: 2rem;
+    }
+
+    .detail-label {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+
+    .detail-value {
+      color: #111827;
+      margin-bottom: 1rem;
+    }
+
+    .detail-image {
+      max-width: 100%;
+      max-height: 500px;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #6b7280;
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      color: #d1d5db;
+    }
+
+    .empty-state-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #374151;
+    }
+
+    .empty-state-text {
+      font-size: 0.875rem;
+    }
+
+    /* Utility Classes */
+    .hidden {
+      display: none !important;
+    }
+
+    .flex {
+      display: flex;
+    }
+
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .gap-1 {
+      gap: 0.5rem;
+    }
+
+    .gap-2 {
+      gap: 1rem;
+    }
+
+    .mb-1 {
+      margin-bottom: 0.5rem;
+    }
+
+    .mb-2 {
+      margin-bottom: 1rem;
+    }
+
+    .mb-3 {
+      margin-bottom: 1.5rem;
+    }
+
+    .mt-1 {
+      margin-top: 0.5rem;
+    }
+
+    .mt-2 {
+      margin-top: 1rem;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .nav-tabs {
+        flex-wrap: wrap;
+      }
+
+      .filters {
+        flex-direction: column;
+      }
+
+      .product-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .table-container {
+        font-size: 0.875rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header id="app-header" class="hidden">
+      <div class="header-content">
+        <div class="logo">🍬 お菓子業界管理システム</div>
+        <nav class="nav-tabs" id="nav-tabs"></nav>
+        <div class="user-info">
+          <div class="user-badge" id="user-badge"></div>
+          <button class="btn-logout" onclick="app.logout()">ログアウト</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content"></main>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    // ========================
+    // Constants & Initial Data
+    // ========================
+    const WHOLESALERS = [
+      '東都商事', '中央流通', '西日本卸', '北辰物産', '南海トレード'
+    ];
+
+    const MANUFACTURERS = [
+      '星空製菓', '桜菓房', '風月堂', '旭飴本舗', '翔和ビスケット',
+      '葵堂', '華月糖果', '夕凪キャンディ', '大和コンフェク', '瑞穂ショコラ',
+      '麗峰パイ', '翠松煎餅', '朱鷺ラムネ', '千歳キャラメル', '燦光モナカ',
+      '清流マシュマロ', '極光クラッカー', '若葉タルト', '月光ドラジェ', '琥珀ボンボン'
+    ];
+
+    const CATEGORIES = [
+      '飴', 'チョコ', 'クッキー', 'せんべい', 'その他'
+    ];
+
+    // ========================
+    // Utility Functions
+    // ========================
+    function uuid() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    function formatDate(isoString) {
+      const date = new Date(isoString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}/${month}/${day} ${hours}:${minutes}`;
+    }
+
+    function formatDateShort(isoString) {
+      const date = new Date(isoString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}/${month}/${day}`;
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function parseCsv(text) {
+      const lines = text.trim().split('\n');
+      if (lines.length === 0) return { headers: [], rows: [] };
+
+      const headers = lines[0].split(',').map(h => h.trim());
+      const rows = lines.slice(1).map(line =>
+        line.split(',').map(cell => cell.trim())
+      );
+
+      return { headers, rows };
+    }
+
+    function downloadFile(base64, filename, mime) {
+      const link = document.createElement('a');
+      link.href = `data:${mime};base64,${base64}`;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+
+      const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+      };
+
+      toast.innerHTML = `
+        <div class="toast-icon">${icons[type] || icons.info}</div>
+        <div class="toast-message">${message}</div>
+      `;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => container.removeChild(toast), 300);
+      }, 3000);
+    }
+
+    // ========================
+    // LocalStorage Wrapper
+    // ========================
+    const storage = {
+      load(key, defaultValue = null) {
+        const value = localStorage.getItem(key);
+        return value ? JSON.parse(value) : defaultValue;
+      },
+      save(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+      },
+      clear() {
+        localStorage.clear();
+      }
+    };
+
+    // ========================
+    // Data Models
+    // ========================
+    const dataStore = {
+      getProducts() {
+        return storage.load('products', []);
+      },
+      saveProducts(products) {
+        storage.save('products', products);
+      },
+      addProduct(product) {
+        const products = this.getProducts();
+        products.push(product);
+        this.saveProducts(products);
+      },
+      updateProduct(id, updates) {
+        const products = this.getProducts();
+        const index = products.findIndex(p => p.id === id);
+        if (index !== -1) {
+          products[index] = { ...products[index], ...updates, updatedAt: new Date().toISOString() };
+          this.saveProducts(products);
+        }
+      },
+      deleteProduct(id) {
+        const products = this.getProducts().filter(p => p.id !== id);
+        this.saveProducts(products);
+      },
+      getProduct(id) {
+        return this.getProducts().find(p => p.id === id);
+      },
+
+      getQuoteRequests() {
+        return storage.load('quoteRequests', []);
+      },
+      saveQuoteRequests(requests) {
+        storage.save('quoteRequests', requests);
+      },
+      addQuoteRequest(request) {
+        const requests = this.getQuoteRequests();
+        requests.push(request);
+        this.saveQuoteRequests(requests);
+      },
+      updateQuoteRequest(id, updates) {
+        const requests = this.getQuoteRequests();
+        const index = requests.findIndex(r => r.id === id);
+        if (index !== -1) {
+          requests[index] = { ...requests[index], ...updates, updatedAt: new Date().toISOString() };
+          this.saveQuoteRequests(requests);
+        }
+      },
+      getQuoteRequest(id) {
+        return this.getQuoteRequests().find(r => r.id === id);
+      },
+
+      getQuotes() {
+        return storage.load('quotes', []);
+      },
+      saveQuotes(quotes) {
+        storage.save('quotes', quotes);
+      },
+      addQuote(quote) {
+        const quotes = this.getQuotes();
+        quotes.push(quote);
+        this.saveQuotes(quotes);
+      },
+      getQuotesByRequest(requestId) {
+        return this.getQuotes().filter(q => q.requestId === requestId);
+      },
+
+      getReadStatus() {
+        return storage.load('readStatus', []);
+      },
+      saveReadStatus(status) {
+        storage.save('readStatus', status);
+      },
+      markAsRead(wholesalerName, requestId) {
+        const statuses = this.getReadStatus();
+        const existing = statuses.find(s =>
+          s.wholesalerName === wholesalerName && s.requestId === requestId
+        );
+        if (!existing) {
+          statuses.push({
+            wholesalerName,
+            requestId,
+            readAt: new Date().toISOString()
+          });
+          this.saveReadStatus(statuses);
+        }
+      },
+      isRead(wholesalerName, requestId) {
+        const statuses = this.getReadStatus();
+        return statuses.some(s =>
+          s.wholesalerName === wholesalerName && s.requestId === requestId
+        );
+      }
+    };
+
+    // ========================
+    // App State
+    // ========================
+    const app = {
+      currentUser: null,
+      currentRoute: '#login',
+
+      init() {
+        this.currentUser = storage.load('currentUser');
+        this.setupRouter();
+        this.navigate(window.location.hash || '#login');
+      },
+
+      setupRouter() {
+        window.addEventListener('hashchange', () => {
+          this.navigate(window.location.hash);
+        });
+      },
+
+      navigate(hash) {
+        this.currentRoute = hash;
+        const routes = {
+          '#login': () => this.renderLogin(),
+          '#products/register': () => this.renderProductRegister(),
+          '#products/list': () => this.renderProductList(),
+          '#requests/inbox': () => this.renderRequestsInbox(),
+          '#catalog': () => this.renderCatalog(),
+          '#requests/sent': () => this.renderRequestsSent()
+        };
+
+        if (hash.startsWith('#detail/product/')) {
+          const id = hash.split('/')[3];
+          this.renderProductDetail(id);
+        } else if (hash.startsWith('#detail/request/')) {
+          const id = hash.split('/')[3];
+          this.renderRequestDetail(id);
+        } else if (routes[hash]) {
+          routes[hash]();
+        } else {
+          this.navigate('#login');
+        }
+      },
+
+      login(role, company) {
+        this.currentUser = { role, company };
+        storage.save('currentUser', this.currentUser);
+        this.updateHeader();
+
+        if (role === 'manufacturer') {
+          this.navigate('#products/register');
+        } else {
+          this.navigate('#catalog');
+        }
+      },
+
+      logout() {
+        this.currentUser = null;
+        storage.save('currentUser', null);
+        this.navigate('#login');
+      },
+
+      updateHeader() {
+        const header = document.getElementById('app-header');
+        const navTabs = document.getElementById('nav-tabs');
+        const userBadge = document.getElementById('user-badge');
+
+        if (!this.currentUser) {
+          header.classList.add('hidden');
+          return;
+        }
+
+        header.classList.remove('hidden');
+        userBadge.textContent = `${this.currentUser.role === 'manufacturer' ? 'メーカー' : '問屋'} - ${this.currentUser.company}`;
+
+        const tabs = this.currentUser.role === 'manufacturer'
+          ? [
+              { hash: '#products/register', label: '商品登録' },
+              { hash: '#products/list', label: '登録商品一覧' },
+              { hash: '#requests/inbox', label: '受信見積依頼' }
+            ]
+          : [
+              { hash: '#catalog', label: '商品カタログ' },
+              { hash: '#requests/sent', label: '送信済み見積依頼' }
+            ];
+
+        navTabs.innerHTML = tabs.map(tab => `
+          <button class="nav-tab ${this.currentRoute === tab.hash ? 'active' : ''}"
+                  onclick="app.navigate('${tab.hash}')">
+            ${tab.label}
+          </button>
+        `).join('');
+      },
+
+      // ========================
+      // Login Screen
+      // ========================
+      renderLogin() {
+        this.updateHeader();
+        const main = document.getElementById('main-content');
+        main.innerHTML = `
+          <div class="login-container">
+            <h1 class="login-title">🍬 お菓子業界管理システム</h1>
+            <form onsubmit="app.handleLogin(event)">
+              <div class="form-group">
+                <label class="form-label">ロール選択<span class="form-required">*</span></label>
+                <select class="form-select" id="login-role" required onchange="app.updateCompanyList()">
+                  <option value="">選択してください</option>
+                  <option value="wholesaler">問屋</option>
+                  <option value="manufacturer">メーカー</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">会社選択<span class="form-required">*</span></label>
+                <select class="form-select" id="login-company" required disabled>
+                  <option value="">ロールを選択してください</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">ログイン</button>
+            </form>
+          </div>
+        `;
+      },
+
+      updateCompanyList() {
+        const role = document.getElementById('login-role').value;
+        const companySelect = document.getElementById('login-company');
+
+        if (!role) {
+          companySelect.disabled = true;
+          companySelect.innerHTML = '<option value="">ロールを選択してください</option>';
+          return;
+        }
+
+        const companies = role === 'wholesaler' ? WHOLESALERS : MANUFACTURERS;
+        companySelect.disabled = false;
+        companySelect.innerHTML = `
+          <option value="">選択してください</option>
+          ${companies.map(c => `<option value="${c}">${c}</option>`).join('')}
+        `;
+      },
+
+      handleLogin(e) {
+        e.preventDefault();
+        const role = document.getElementById('login-role').value;
+        const company = document.getElementById('login-company').value;
+
+        if (!role || !company) {
+          showToast('ロールと会社を選択してください', 'error');
+          return;
+        }
+
+        this.login(role, company);
+        showToast('ログインしました', 'success');
+      },
+
+      // ========================
+      // Product Register (Manufacturer)
+      // ========================
+      renderProductRegister() {
+        if (!this.currentUser || this.currentUser.role !== 'manufacturer') {
+          this.navigate('#login');
+          return;
+        }
+
+        this.updateHeader();
+        const main = document.getElementById('main-content');
+        main.innerHTML = `
+          <div class="card">
+            <h2 class="card-title">新規商品登録</h2>
+            <form onsubmit="app.handleProductSubmit(event)" id="product-form">
+              <div class="form-group">
+                <label class="form-label">商品名<span class="form-required">*</span></label>
+                <input type="text" class="form-input" id="product-name" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">カテゴリ<span class="form-required">*</span></label>
+                <select class="form-select" id="product-category" required>
+                  <option value="">選択してください</option>
+                  ${CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">商品説明</label>
+                <textarea class="form-textarea" id="product-description"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">希望小売価格（円）<span class="form-required">*</span></label>
+                <input type="number" class="form-input" id="product-price" required min="0">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ロット数（個/箱）<span class="form-required">*</span></label>
+                <input type="number" class="form-input" id="product-lot" required min="1">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">商品画像</label>
+                <div class="dropzone" id="image-dropzone"
+                     ondragover="app.handleDragOver(event)"
+                     ondragleave="app.handleDragLeave(event)"
+                     ondrop="app.handleImageDrop(event)"
+                     onclick="document.getElementById('image-input').click()">
+                  <div class="dropzone-icon">📷</div>
+                  <div class="dropzone-text">クリックまたはドラッグ&ドロップで画像を追加</div>
+                  <div class="dropzone-hint">JPG, PNG, GIF (最大5MB)</div>
+                </div>
+                <input type="file" id="image-input" class="hidden" accept="image/*" onchange="app.handleImageSelect(event)">
+                <div id="image-preview" class="image-preview hidden"></div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">商品資料（CSV/PDF）</label>
+                <div class="dropzone" id="files-dropzone"
+                     ondragover="app.handleDragOver(event)"
+                     ondragleave="app.handleDragLeave(event)"
+                     ondrop="app.handleFilesDrop(event)"
+                     onclick="document.getElementById('files-input').click()">
+                  <div class="dropzone-icon">📄</div>
+                  <div class="dropzone-text">クリックまたはドラッグ&ドロップで資料を追加</div>
+                  <div class="dropzone-hint">CSV, PDF (各最大10MB、複数可)</div>
+                </div>
+                <input type="file" id="files-input" class="hidden" accept=".csv,.pdf" multiple onchange="app.handleFilesSelect(event)">
+                <div id="files-list" class="file-list"></div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block">商品を登録</button>
+            </form>
+          </div>
+        `;
+
+        this.productFormData = {
+          image: null,
+          files: []
+        };
+      },
+
+      handleDragOver(e) {
+        e.preventDefault();
+        e.currentTarget.classList.add('drag-over');
+      },
+
+      handleDragLeave(e) {
+        e.currentTarget.classList.remove('drag-over');
+      },
+
+      handleImageDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files);
+        const imageFile = files.find(f => f.type.startsWith('image/'));
+        if (imageFile) {
+          this.processImage(imageFile);
+        }
+      },
+
+      handleImageSelect(e) {
+        const file = e.target.files[0];
+        if (file) {
+          this.processImage(file);
+        }
+      },
+
+      async processImage(file) {
+        if (file.size > 5 * 1024 * 1024) {
+          showToast('画像サイズは5MB以下にしてください', 'error');
+          return;
+        }
+
+        const base64 = await readFileAsBase64(file);
+        this.productFormData.image = {
+          filename: file.name,
+          mime: file.type,
+          size: file.size,
+          base64
+        };
+
+        const preview = document.getElementById('image-preview');
+        preview.className = 'image-preview';
+        preview.innerHTML = `<img src="data:${file.type};base64,${base64}" alt="プレビュー">`;
+      },
+
+      handleFilesDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files);
+        this.processFiles(files);
+      },
+
+      handleFilesSelect(e) {
+        const files = Array.from(e.target.files);
+        this.processFiles(files);
+      },
+
+      async processFiles(files) {
+        for (const file of files) {
+          if (file.size > 10 * 1024 * 1024) {
+            showToast(`${file.name} はサイズが大きすぎます（最大10MB）`, 'error');
+            continue;
+          }
+
+          if (!file.name.match(/\.(csv|pdf)$/i)) {
+            showToast(`${file.name} はCSVまたはPDFファイルではありません`, 'error');
+            continue;
+          }
+
+          const base64 = await readFileAsBase64(file);
+          this.productFormData.files.push({
+            filename: file.name,
+            mime: file.type,
+            size: file.size,
+            base64
+          });
+        }
+
+        this.renderFilesList();
+      },
+
+      renderFilesList() {
+        const container = document.getElementById('files-list');
+        if (this.productFormData.files.length === 0) {
+          container.innerHTML = '';
+          return;
+        }
+
+        container.innerHTML = this.productFormData.files.map((file, index) => `
+          <div class="file-item">
+            <div class="file-info">
+              <div class="file-icon">${file.mime.includes('pdf') ? '📕' : '📊'}</div>
+              <div class="file-details">
+                <div class="file-name">${file.filename}</div>
+                <div class="file-size">${formatFileSize(file.size)}</div>
+              </div>
+            </div>
+            <div class="file-actions">
+              <button type="button" class="btn btn-danger" onclick="app.removeFile(${index})">削除</button>
+            </div>
+          </div>
+        `).join('');
+      },
+
+      removeFile(index) {
+        this.productFormData.files.splice(index, 1);
+        this.renderFilesList();
+      },
+
+      async handleProductSubmit(e) {
+        e.preventDefault();
+
+        const product = {
+          id: uuid(),
+          manufacturerName: this.currentUser.company,
+          productName: document.getElementById('product-name').value,
+          category: document.getElementById('product-category').value,
+          description: document.getElementById('product-description').value,
+          price: parseInt(document.getElementById('product-price').value),
+          lotSize: parseInt(document.getElementById('product-lot').value),
+          imageBase64: this.productFormData.image ? this.productFormData.image.base64 : null,
+          imageMime: this.productFormData.image ? this.productFormData.image.mime : null,
+          attachments: this.productFormData.files,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        dataStore.addProduct(product);
+        showToast('商品を登録しました', 'success');
+
+        document.getElementById('product-form').reset();
+        this.productFormData = { image: null, files: [] };
+        document.getElementById('image-preview').className = 'image-preview hidden';
+        document.getElementById('files-list').innerHTML = '';
+      },
+
+      // ========================
+      // Product List (Manufacturer)
+      // ========================
+      renderProductList() {
+        if (!this.currentUser || this.currentUser.role !== 'manufacturer') {
+          this.navigate('#login');
+          return;
+        }
+
+        this.updateHeader();
+        const products = dataStore.getProducts()
+          .filter(p => p.manufacturerName === this.currentUser.company)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        const main = document.getElementById('main-content');
+
+        if (products.length === 0) {
+          main.innerHTML = `
+            <div class="card">
+              <div class="empty-state">
+                <div class="empty-state-icon">📦</div>
+                <div class="empty-state-title">商品が登録されていません</div>
+                <div class="empty-state-text">「商品登録」タブから商品を登録してください</div>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        main.innerHTML = `
+          <div class="card">
+            <h2 class="card-title">登録済み商品一覧（${products.length}件）</h2>
+            <div class="product-grid">
+              ${products.map(p => `
+                <div class="product-card">
+                  <div class="product-card-image">
+                    ${p.imageBase64
+                      ? `<img src="data:${p.imageMime};base64,${p.imageBase64}" alt="${p.productName}">`
+                      : '🍬'
+                    }
+                  </div>
+                  <div class="product-card-content">
+                    <div class="product-card-title">${p.productName}</div>
+                    <div class="product-card-meta">
+                      <span class="badge badge-primary">${p.category}</span>
+                    </div>
+                    <div class="product-card-price">¥${p.price.toLocaleString()}</div>
+                    <div class="product-card-meta">ロット: ${p.lotSize}個</div>
+                    <div class="flex gap-1 mt-2">
+                      <button class="btn btn-primary" onclick="app.navigate('#detail/product/${p.id}')">詳細</button>
+                      <button class="btn btn-danger" onclick="app.deleteProduct('${p.id}')">削除</button>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      },
+
+      deleteProduct(id) {
+        if (confirm('この商品を削除してもよろしいですか？')) {
+          dataStore.deleteProduct(id);
+          showToast('商品を削除しました', 'success');
+          this.renderProductList();
+        }
+      },
+
+      // ========================
+      // Requests Inbox (Manufacturer)
+      // ========================
+      renderRequestsInbox() {
+        if (!this.currentUser || this.currentUser.role !== 'manufacturer') {
+          this.navigate('#login');
+          return;
+        }
+
+        this.updateHeader();
+        const requests = dataStore.getQuoteRequests()
+          .filter(r => r.manufacturerName === this.currentUser.company)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        const main = document.getElementById('main-content');
+
+        if (requests.length === 0) {
+          main.innerHTML = `
+            <div class="card">
+              <div class="empty-state">
+                <div class="empty-state-icon">📬</div>
+                <div class="empty-state-title">見積依頼がありません</div>
+                <div class="empty-state-text">問屋から見積依頼が届くとここに表示されます</div>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        main.innerHTML = `
+          <div class="card">
+            <h2 class="card-title">受信見積依頼（${requests.length}件）</h2>
+            <div class="filters">
+              <div class="filter-group">
+                <label class="form-label">ステータス</label>
+                <select class="form-select" id="filter-status" onchange="app.renderRequestsInbox()">
+                  <option value="">すべて</option>
+                  <option value="pending">未対応</option>
+                  <option value="quoted">見積提出済</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label class="form-label">問屋</label>
+                <select class="form-select" id="filter-wholesaler" onchange="app.renderRequestsInbox()">
+                  <option value="">すべて</option>
+                  ${WHOLESALERS.map(w => `<option value="${w}">${w}</option>`).join('')}
+                </select>
+              </div>
+              <div class="search-box">
+                <label class="form-label">検索</label>
+                <input type="text" class="search-input" id="search-input" placeholder="商品名・問屋名で検索" oninput="app.renderRequestsInbox()">
+              </div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>依頼ID</th>
+                    <th>商品名</th>
+                    <th>依頼元問屋</th>
+                    <th>依頼日時</th>
+                    <th>ステータス</th>
+                    <th>アクション</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${this.filterRequests(requests).map(r => `
+                    <tr>
+                      <td>${r.id.substring(0, 8)}</td>
+                      <td>${r.productName}</td>
+                      <td>${r.wholesalerName}</td>
+                      <td>${formatDate(r.createdAt)}</td>
+                      <td>
+                        ${r.status === 'pending'
+                          ? '<span class="badge badge-warning">未対応</span>'
+                          : '<span class="badge badge-success">見積提出済</span>'
+                        }
+                      </td>
+                      <td>
+                        <button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      },
+
+      filterRequests(requests) {
+        const statusFilter = document.getElementById('filter-status')?.value || '';
+        const wholesalerFilter = document.getElementById('filter-wholesaler')?.value || '';
+        const searchQuery = document.getElementById('search-input')?.value.toLowerCase() || '';
+
+        return requests.filter(r => {
+          if (statusFilter && r.status !== statusFilter) return false;
+          if (wholesalerFilter && r.wholesalerName !== wholesalerFilter) return false;
+          if (searchQuery &&
+              !r.productName.toLowerCase().includes(searchQuery) &&
+              !r.wholesalerName.toLowerCase().includes(searchQuery)) {
+            return false;
+          }
+          return true;
+        });
+      },
+
+      // ========================
+      // Catalog (Wholesaler)
+      // ========================
+      renderCatalog() {
+        if (!this.currentUser || this.currentUser.role !== 'wholesaler') {
+          this.navigate('#login');
+          return;
+        }
+
+        this.updateHeader();
+        const products = dataStore.getProducts();
+
+        const main = document.getElementById('main-content');
+
+        if (products.length === 0) {
+          main.innerHTML = `
+            <div class="card">
+              <div class="empty-state">
+                <div class="empty-state-icon">🍬</div>
+                <div class="empty-state-title">商品が登録されていません</div>
+                <div class="empty-state-text">メーカーが商品を登録するとここに表示されます</div>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        main.innerHTML = `
+          <div class="card">
+            <h2 class="card-title">商品カタログ（${products.length}件）</h2>
+            <div class="filters">
+              <div class="filter-group">
+                <label class="form-label">メーカー</label>
+                <select class="form-select" id="filter-manufacturer" onchange="app.renderCatalog()">
+                  <option value="">すべて</option>
+                  ${MANUFACTURERS.map(m => `<option value="${m}">${m}</option>`).join('')}
+                </select>
+              </div>
+              <div class="filter-group">
+                <label class="form-label">カテゴリ</label>
+                <select class="form-select" id="filter-category" onchange="app.renderCatalog()">
+                  <option value="">すべて</option>
+                  ${CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+                </select>
+              </div>
+              <div class="filter-group">
+                <label class="form-label">並び替え</label>
+                <select class="form-select" id="sort-order" onchange="app.renderCatalog()">
+                  <option value="date-desc">登録日時（新しい順）</option>
+                  <option value="date-asc">登録日時（古い順）</option>
+                  <option value="price-asc">価格（安い順）</option>
+                  <option value="price-desc">価格（高い順）</option>
+                </select>
+              </div>
+              <div class="search-box">
+                <label class="form-label">検索</label>
+                <input type="text" class="search-input" id="search-input" placeholder="商品名・メーカー名で検索" oninput="app.renderCatalog()">
+              </div>
+            </div>
+            <div class="product-grid">
+              ${this.filterAndSortProducts(products).map(p => `
+                <div class="product-card" onclick="app.navigate('#detail/product/${p.id}')">
+                  <div class="product-card-image">
+                    ${p.imageBase64
+                      ? `<img src="data:${p.imageMime};base64,${p.imageBase64}" alt="${p.productName}">`
+                      : '🍬'
+                    }
+                  </div>
+                  <div class="product-card-content">
+                    <div class="product-card-title">${p.productName}</div>
+                    <div class="product-card-meta">
+                      <span class="badge badge-gray">${p.manufacturerName}</span>
+                      <span class="badge badge-primary">${p.category}</span>
+                    </div>
+                    <div class="product-card-price">¥${p.price.toLocaleString()}</div>
+                    <div class="product-card-meta">ロット: ${p.lotSize}個</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      },
+
+      filterAndSortProducts(products) {
+        const manufacturerFilter = document.getElementById('filter-manufacturer')?.value || '';
+        const categoryFilter = document.getElementById('filter-category')?.value || '';
+        const searchQuery = document.getElementById('search-input')?.value.toLowerCase() || '';
+        const sortOrder = document.getElementById('sort-order')?.value || 'date-desc';
+
+        let filtered = products.filter(p => {
+          if (manufacturerFilter && p.manufacturerName !== manufacturerFilter) return false;
+          if (categoryFilter && p.category !== categoryFilter) return false;
+          if (searchQuery &&
+              !p.productName.toLowerCase().includes(searchQuery) &&
+              !p.manufacturerName.toLowerCase().includes(searchQuery)) {
+            return false;
+          }
+          return true;
+        });
+
+        filtered.sort((a, b) => {
+          switch (sortOrder) {
+            case 'date-asc':
+              return new Date(a.createdAt) - new Date(b.createdAt);
+            case 'date-desc':
+              return new Date(b.createdAt) - new Date(a.createdAt);
+            case 'price-asc':
+              return a.price - b.price;
+            case 'price-desc':
+              return b.price - a.price;
+            default:
+              return 0;
+          }
+        });
+
+        return filtered;
+      },
+
+      // ========================
+      // Product Detail
+      // ========================
+      renderProductDetail(id) {
+        if (!this.currentUser) {
+          this.navigate('#login');
+          return;
+        }
+
+        this.updateHeader();
+        const product = dataStore.getProduct(id);
+
+        if (!product) {
+          showToast('商品が見つかりません', 'error');
+          this.navigate(this.currentUser.role === 'manufacturer' ? '#products/list' : '#catalog');
+          return;
+        }
+
+        const main = document.getElementById('main-content');
+        main.innerHTML = `
+          <div class="card">
+            <div class="flex-between mb-3">
+              <h2 class="card-title">商品詳細</h2>
+              <button class="btn btn-secondary" onclick="history.back()">戻る</button>
+            </div>
+
+            ${product.imageBase64 ? `
+              <div class="detail-section">
+                <img src="data:${product.imageMime};base64,${product.imageBase64}" alt="${product.productName}" class="detail-image">
+              </div>
+            ` : ''}
+
+            <div class="detail-section">
+              <div class="detail-label">商品名</div>
+              <div class="detail-value" style="font-size: 1.5rem; font-weight: bold;">${product.productName}</div>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-label">メーカー</div>
+              <div class="detail-value">${product.manufacturerName}</div>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-label">カテゴリ</div>
+              <div class="detail-value"><span class="badge badge-primary">${product.category}</span></div>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-label">希望小売価格</div>
+              <div class="detail-value" style="font-size: 1.5rem; font-weight: bold; color: #2563eb;">¥${product.price.toLocaleString()}</div>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-label">ロット数</div>
+              <div class="detail-value">${product.lotSize}個/箱</div>
+            </div>
+
+            ${product.description ? `
+              <div class="detail-section">
+                <div class="detail-label">商品説明</div>
+                <div class="detail-value">${product.description}</div>
+              </div>
+            ` : ''}
+
+            ${product.attachments && product.attachments.length > 0 ? `
+              <div class="detail-section">
+                <div class="detail-label">添付資料</div>
+                <div class="file-list">
+                  ${product.attachments.map(file => `
+                    <div class="file-item">
+                      <div class="file-info">
+                        <div class="file-icon">${file.mime.includes('pdf') ? '📕' : '📊'}</div>
+                        <div class="file-details">
+                          <div class="file-name">${file.filename}</div>
+                          <div class="file-size">${formatFileSize(file.size)}</div>
+                        </div>
+                      </div>
+                      <div class="file-actions">
+                        ${file.filename.endsWith('.csv') ? `
+                          <button class="btn btn-outline" onclick="app.previewCsv('${file.base64}', '${file.filename}')">プレビュー</button>
+                        ` : ''}
+                        <button class="btn btn-primary" onclick="downloadFile('${file.base64}', '${file.filename}', '${file.mime}')">ダウンロード</button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="detail-section">
+              <div class="detail-label">登録日時</div>
+              <div class="detail-value">${formatDate(product.createdAt)}</div>
+            </div>
+
+            ${this.currentUser.role === 'wholesaler' ? `
+              <div class="detail-section">
+                <button class="btn btn-success btn-block" onclick="app.showQuoteRequestModal('${product.id}')">この商品に見積依頼を送る</button>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      },
+
+      previewCsv(base64, filename) {
+        const text = atob(base64);
+        const csvData = parseCsv(text);
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+          <div class="modal">
+            <div class="modal-header">
+              <h3 class="modal-title">CSVプレビュー: ${filename}</h3>
+              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+              <div class="csv-preview">
+                <table>
+                  <thead>
+                    <tr>
+                      ${csvData.headers.map(h => `<th>${h}</th>`).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${csvData.rows.slice(0, 100).map(row => `
+                      <tr>
+                        ${row.map(cell => `<td>${cell}</td>`).join('')}
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+                ${csvData.rows.length > 100 ? `<p class="mt-2 text-center" style="color: #6b7280;">※先頭100行のみ表示しています</p>` : ''}
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-primary" onclick="downloadFile('${base64}', '${filename}', 'text/csv')">ダウンロード</button>
+              <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">閉じる</button>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(modal);
+      },
+
+      showQuoteRequestModal(productId) {
+        const product = dataStore.getProduct(productId);
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+          <div class="modal">
+            <div class="modal-header">
+              <h3 class="modal-title">見積依頼を送信</h3>
+              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+              <form id="quote-request-form">
+                <div class="form-group">
+                  <label class="form-label">商品名</label>
+                  <input type="text" class="form-input" value="${product.productName}" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">メーカー</label>
+                  <input type="text" class="form-input" value="${product.manufacturerName}" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">希望数量<span class="form-required">*</span></label>
+                  <input type="number" class="form-input" id="request-quantity" required min="1">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">希望納期</label>
+                  <input type="date" class="form-input" id="request-duedate">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">補足メモ</label>
+                  <textarea class="form-textarea" id="request-memo"></textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-success" onclick="app.submitQuoteRequest('${productId}')">見積依頼を送信</button>
+              <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">キャンセル</button>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(modal);
+      },
+
+      submitQuoteRequest(productId) {
+        const product = dataStore.getProduct(productId);
+        const quantity = document.getElementById('request-quantity').value;
+        const dueDate = document.getElementById('request-duedate').value;
+        const memo = document.getElementById('request-memo').value;
+
+        if (!quantity) {
+          showToast('希望数量を入力してください', 'error');
+          return;
+        }
+
+        const request = {
+          id: uuid(),
+          productId: productId,
+          productName: product.productName,
+          wholesalerName: this.currentUser.company,
+          manufacturerName: product.manufacturerName,
+          quantity: parseInt(quantity),
+          dueDate: dueDate,
+          memo: memo,
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        dataStore.addQuoteRequest(request);
+        showToast('見積依頼を送信しました', 'success');
+
+        document.querySelector('.modal-overlay').remove();
+        this.navigate('#requests/sent');
+      },
+
+      // ========================
+      // Requests Sent (Wholesaler)
+      // ========================
+      renderRequestsSent() {
+        if (!this.currentUser || this.currentUser.role !== 'wholesaler') {
+          this.navigate('#login');
+          return;
+        }
+
+        this.updateHeader();
+        const requests = dataStore.getQuoteRequests()
+          .filter(r => r.wholesalerName === this.currentUser.company)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        const main = document.getElementById('main-content');
+
+        if (requests.length === 0) {
+          main.innerHTML = `
+            <div class="card">
+              <div class="empty-state">
+                <div class="empty-state-icon">📤</div>
+                <div class="empty-state-title">送信した見積依頼がありません</div>
+                <div class="empty-state-text">商品カタログから見積依頼を送信してください</div>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        main.innerHTML = `
+          <div class="card">
+            <h2 class="card-title">送信済み見積依頼（${requests.length}件）</h2>
+            <div class="filters">
+              <div class="filter-group">
+                <label class="form-label">ステータス</label>
+                <select class="form-select" id="filter-status" onchange="app.renderRequestsSent()">
+                  <option value="">すべて</option>
+                  <option value="pending">依頼中</option>
+                  <option value="quoted">見積受領済</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label class="form-label">メーカー</label>
+                <select class="form-select" id="filter-manufacturer" onchange="app.renderRequestsSent()">
+                  <option value="">すべて</option>
+                  ${MANUFACTURERS.map(m => `<option value="${m}">${m}</option>`).join('')}
+                </select>
+              </div>
+              <div class="search-box">
+                <label class="form-label">検索</label>
+                <input type="text" class="search-input" id="search-input" placeholder="商品名・メーカー名で検索" oninput="app.renderRequestsSent()">
+              </div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>依頼ID</th>
+                    <th>商品名</th>
+                    <th>メーカー名</th>
+                    <th>依頼日時</th>
+                    <th>ステータス</th>
+                    <th>アクション</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${this.filterSentRequests(requests).map(r => {
+                    const isRead = dataStore.isRead(this.currentUser.company, r.id);
+                    const hasQuote = r.status === 'quoted';
+                    return `
+                      <tr>
+                        <td>${r.id.substring(0, 8)}</td>
+                        <td>${r.productName}</td>
+                        <td>${r.manufacturerName}</td>
+                        <td>${formatDate(r.createdAt)}</td>
+                        <td>
+                          ${r.status === 'pending'
+                            ? '<span class="badge badge-warning">依頼中</span>'
+                            : `<span class="badge badge-success">見積受領済</span>${!isRead ? '<span class="badge-count">未読</span>' : ''}`
+                          }
+                        </td>
+                        <td>
+                          <button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細</button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      },
+
+      filterSentRequests(requests) {
+        const statusFilter = document.getElementById('filter-status')?.value || '';
+        const manufacturerFilter = document.getElementById('filter-manufacturer')?.value || '';
+        const searchQuery = document.getElementById('search-input')?.value.toLowerCase() || '';
+
+        return requests.filter(r => {
+          if (statusFilter && r.status !== statusFilter) return false;
+          if (manufacturerFilter && r.manufacturerName !== manufacturerFilter) return false;
+          if (searchQuery &&
+              !r.productName.toLowerCase().includes(searchQuery) &&
+              !r.manufacturerName.toLowerCase().includes(searchQuery)) {
+            return false;
+          }
+          return true;
+        });
+      },
+
+      // ========================
+      // Request Detail
+      // ========================
+      renderRequestDetail(id) {
+        if (!this.currentUser) {
+          this.navigate('#login');
+          return;
+        }
+
+        this.updateHeader();
+        const request = dataStore.getQuoteRequest(id);
+
+        if (!request) {
+          showToast('見積依頼が見つかりません', 'error');
+          history.back();
+          return;
+        }
+
+        const quotes = dataStore.getQuotesByRequest(id);
+        const isManufacturer = this.currentUser.role === 'manufacturer';
+        const isWholesaler = this.currentUser.role === 'wholesaler';
+
+        if (isWholesaler && request.status === 'quoted') {
+          dataStore.markAsRead(this.currentUser.company, id);
+        }
+
+        const main = document.getElementById('main-content');
+        main.innerHTML = `
+          <div class="card">
+            <div class="flex-between mb-3">
+              <h2 class="card-title">見積依頼詳細</h2>
+              <button class="btn btn-secondary" onclick="history.back()">戻る</button>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-label">依頼ID</div>
+              <div class="detail-value">${request.id}</div>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-label">商品名</div>
+              <div class="detail-value" style="font-size: 1.25rem; font-weight: bold;">${request.productName}</div>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-label">メーカー</div>
+              <div class="detail-value">${request.manufacturerName}</div>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-label">問屋</div>
+              <div class="detail-value">${request.wholesalerName}</div>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-label">希望数量</div>
+              <div class="detail-value">${request.quantity.toLocaleString()}個</div>
+            </div>
+
+            ${request.dueDate ? `
+              <div class="detail-section">
+                <div class="detail-label">希望納期</div>
+                <div class="detail-value">${request.dueDate}</div>
+              </div>
+            ` : ''}
+
+            ${request.memo ? `
+              <div class="detail-section">
+                <div class="detail-label">補足メモ</div>
+                <div class="detail-value">${request.memo}</div>
+              </div>
+            ` : ''}
+
+            <div class="detail-section">
+              <div class="detail-label">ステータス</div>
+              <div class="detail-value">
+                ${request.status === 'pending'
+                  ? '<span class="badge badge-warning">未対応</span>'
+                  : '<span class="badge badge-success">見積提出済</span>'
+                }
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-label">依頼日時</div>
+              <div class="detail-value">${formatDate(request.createdAt)}</div>
+            </div>
+
+            ${isManufacturer && request.status === 'pending' ? `
+              <div class="detail-section">
+                <button class="btn btn-success btn-block" onclick="app.showQuoteUploadModal('${request.id}')">見積書をアップロード</button>
+              </div>
+            ` : ''}
+
+            ${quotes.length > 0 ? `
+              <div class="detail-section">
+                <div class="detail-label">見積書</div>
+                ${quotes.map(quote => `
+                  <div style="margin-bottom: 1rem; padding: 1rem; background: #f9fafb; border-radius: 0.375rem;">
+                    <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem;">
+                      提出日時: ${formatDate(quote.uploadedAt)}
+                    </div>
+                    ${quote.memo ? `
+                      <div style="margin-bottom: 0.75rem;">
+                        <strong>メモ:</strong> ${quote.memo}
+                      </div>
+                    ` : ''}
+                    <div class="file-list">
+                      ${quote.files.map(file => `
+                        <div class="file-item">
+                          <div class="file-info">
+                            <div class="file-icon">${file.mime.includes('pdf') ? '📕' : '📊'}</div>
+                            <div class="file-details">
+                              <div class="file-name">${file.filename}</div>
+                              <div class="file-size">${formatFileSize(file.size)}</div>
+                            </div>
+                          </div>
+                          <div class="file-actions">
+                            ${file.filename.endsWith('.csv') ? `
+                              <button class="btn btn-outline" onclick="app.previewCsv('${file.base64}', '${file.filename}')">プレビュー</button>
+                            ` : ''}
+                            <button class="btn btn-primary" onclick="downloadFile('${file.base64}', '${file.filename}', '${file.mime}')">ダウンロード</button>
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      },
+
+      showQuoteUploadModal(requestId) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+          <div class="modal">
+            <div class="modal-header">
+              <h3 class="modal-title">見積書アップロード</h3>
+              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+              <form id="quote-upload-form">
+                <div class="form-group">
+                  <label class="form-label">見積書ファイル（CSV/PDF）<span class="form-required">*</span></label>
+                  <div class="dropzone" id="quote-dropzone"
+                       ondragover="app.handleDragOver(event)"
+                       ondragleave="app.handleDragLeave(event)"
+                       ondrop="app.handleQuoteFilesDrop(event)"
+                       onclick="document.getElementById('quote-files-input').click()">
+                    <div class="dropzone-icon">📄</div>
+                    <div class="dropzone-text">クリックまたはドラッグ&ドロップでファイルを追加</div>
+                    <div class="dropzone-hint">CSV, PDF (各最大10MB、複数可)</div>
+                  </div>
+                  <input type="file" id="quote-files-input" class="hidden" accept=".csv,.pdf" multiple onchange="app.handleQuoteFilesSelect(event)">
+                  <div id="quote-files-list" class="file-list"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">メモ（任意）</label>
+                  <textarea class="form-textarea" id="quote-memo"></textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-success" onclick="app.submitQuote('${requestId}')">見積書を送信</button>
+              <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">キャンセル</button>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(modal);
+        this.quoteUploadFiles = [];
+      },
+
+      handleQuoteFilesDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files);
+        this.processQuoteFiles(files);
+      },
+
+      handleQuoteFilesSelect(e) {
+        const files = Array.from(e.target.files);
+        this.processQuoteFiles(files);
+      },
+
+      async processQuoteFiles(files) {
+        for (const file of files) {
+          if (file.size > 10 * 1024 * 1024) {
+            showToast(`${file.name} はサイズが大きすぎます（最大10MB）`, 'error');
+            continue;
+          }
+
+          if (!file.name.match(/\.(csv|pdf)$/i)) {
+            showToast(`${file.name} はCSVまたはPDFファイルではありません`, 'error');
+            continue;
+          }
+
+          const base64 = await readFileAsBase64(file);
+          this.quoteUploadFiles.push({
+            filename: file.name,
+            mime: file.type,
+            size: file.size,
+            base64
+          });
+        }
+
+        this.renderQuoteFilesList();
+      },
+
+      renderQuoteFilesList() {
+        const container = document.getElementById('quote-files-list');
+        if (this.quoteUploadFiles.length === 0) {
+          container.innerHTML = '';
+          return;
+        }
+
+        container.innerHTML = this.quoteUploadFiles.map((file, index) => `
+          <div class="file-item">
+            <div class="file-info">
+              <div class="file-icon">${file.mime.includes('pdf') ? '📕' : '📊'}</div>
+              <div class="file-details">
+                <div class="file-name">${file.filename}</div>
+                <div class="file-size">${formatFileSize(file.size)}</div>
+              </div>
+            </div>
+            <div class="file-actions">
+              <button type="button" class="btn btn-danger" onclick="app.removeQuoteFile(${index})">削除</button>
+            </div>
+          </div>
+        `).join('');
+      },
+
+      removeQuoteFile(index) {
+        this.quoteUploadFiles.splice(index, 1);
+        this.renderQuoteFilesList();
+      },
+
+      submitQuote(requestId) {
+        if (this.quoteUploadFiles.length === 0) {
+          showToast('見積書ファイルをアップロードしてください', 'error');
+          return;
+        }
+
+        const memo = document.getElementById('quote-memo').value;
+
+        const quote = {
+          id: uuid(),
+          requestId: requestId,
+          manufacturerName: this.currentUser.company,
+          files: this.quoteUploadFiles,
+          memo: memo,
+          uploadedAt: new Date().toISOString()
+        };
+
+        dataStore.addQuote(quote);
+        dataStore.updateQuoteRequest(requestId, { status: 'quoted' });
+
+        showToast('見積書を送信しました', 'success');
+        document.querySelector('.modal-overlay').remove();
+        this.navigate('#detail/request/' + requestId);
+      }
+    };
+
+    // ========================
+    // Initialize App
+    // ========================
+    document.addEventListener('DOMContentLoaded', () => {
+      app.init();
+    });
+  </script>
+</body>
+</html>
