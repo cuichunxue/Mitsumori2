@@ -1140,6 +1140,7 @@
     const app = {
       currentUser: null,
       currentRoute: '#login',
+      filterState: {},
 
       init() {
         this.currentUser = storage.load('currentUser');
@@ -1585,8 +1586,8 @@
                     <div class="product-card-price">¥${p.price.toLocaleString()}</div>
                     <div class="product-card-meta">ロット: ${p.lotSize}個</div>
                     <div class="flex gap-1 mt-2">
-                      <button class="btn btn-primary" onclick="app.navigate('#detail/product/${escapeHtml(p.id)}')">詳細</button>
-                      <button class="btn btn-danger" onclick="app.deleteProduct('${escapeHtml(p.id)}')">削除</button>
+                      <button class="btn btn-primary" onclick="app.navigate('#detail/product/${p.id}')">詳細</button>
+                      <button class="btn btn-danger" onclick="app.deleteProduct('${p.id}')">削除</button>
                     </div>
                   </div>
                 </div>
@@ -1607,13 +1608,23 @@
       // ========================
       // Requests Inbox (Manufacturer)
       // ========================
-      renderRequestsInbox() {
+      renderRequestsInbox(preserveFilters = false) {
         if (!this.currentUser || this.currentUser.role !== 'manufacturer') {
           this.navigate('#login');
           return;
         }
 
         this.updateHeader();
+
+        // フィルター状態を保存
+        if (preserveFilters) {
+          this.filterState.requestsInbox = {
+            status: document.getElementById('filter-status')?.value || '',
+            wholesaler: document.getElementById('filter-wholesaler')?.value || '',
+            search: document.getElementById('search-input')?.value || ''
+          };
+        }
+
         const requests = dataStore.getQuoteRequests()
           .filter(r => r.manufacturerName === this.currentUser.company)
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -1633,28 +1644,30 @@
           return;
         }
 
+        const savedFilters = this.filterState.requestsInbox || {};
+
         main.innerHTML = `
           <div class="card">
             <h2 class="card-title">受信見積依頼（${requests.length}件）</h2>
             <div class="filters">
               <div class="filter-group">
                 <label class="form-label">ステータス</label>
-                <select class="form-select" id="filter-status" onchange="app.renderRequestsInbox()">
+                <select class="form-select" id="filter-status" onchange="app.renderRequestsInbox(true)">
                   <option value="">すべて</option>
-                  <option value="pending">未対応</option>
-                  <option value="quoted">見積提出済</option>
+                  <option value="pending" ${savedFilters.status === 'pending' ? 'selected' : ''}>未対応</option>
+                  <option value="quoted" ${savedFilters.status === 'quoted' ? 'selected' : ''}>見積提出済</option>
                 </select>
               </div>
               <div class="filter-group">
                 <label class="form-label">問屋</label>
-                <select class="form-select" id="filter-wholesaler" onchange="app.renderRequestsInbox()">
+                <select class="form-select" id="filter-wholesaler" onchange="app.renderRequestsInbox(true)">
                   <option value="">すべて</option>
-                  ${WHOLESALERS.map(w => `<option value="${w}">${w}</option>`).join('')}
+                  ${WHOLESALERS.map(w => `<option value="${w}" ${savedFilters.wholesaler === w ? 'selected' : ''}>${w}</option>`).join('')}
                 </select>
               </div>
               <div class="search-box">
                 <label class="form-label">検索</label>
-                <input type="text" class="search-input" id="search-input" placeholder="商品名・問屋名で検索" oninput="app.renderRequestsInbox()">
+                <input type="text" class="search-input" id="search-input" placeholder="商品名・問屋名で検索" value="${savedFilters.search || ''}" oninput="app.renderRequestsInbox(true)">
               </div>
             </div>
             <div class="table-container">
@@ -1683,7 +1696,7 @@
                         }
                       </td>
                       <td>
-                        <button class="btn btn-primary" onclick="app.navigate('#detail/request/${escapeHtml(r.id)}')">詳細</button>
+                        <button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細</button>
                       </td>
                     </tr>
                   `).join('')}
@@ -1714,13 +1727,24 @@
       // ========================
       // Catalog (Wholesaler)
       // ========================
-      renderCatalog() {
+      renderCatalog(preserveFilters = false) {
         if (!this.currentUser || this.currentUser.role !== 'wholesaler') {
           this.navigate('#login');
           return;
         }
 
         this.updateHeader();
+
+        // フィルター状態を保存
+        if (preserveFilters) {
+          this.filterState.catalog = {
+            manufacturer: document.getElementById('filter-manufacturer')?.value || '',
+            category: document.getElementById('filter-category')?.value || '',
+            sortOrder: document.getElementById('sort-order')?.value || 'date-desc',
+            search: document.getElementById('search-input')?.value || ''
+          };
+        }
+
         const products = dataStore.getProducts();
 
         const main = document.getElementById('main-content');
@@ -1738,41 +1762,43 @@
           return;
         }
 
+        const savedFilters = this.filterState.catalog || {};
+
         main.innerHTML = `
           <div class="card">
             <h2 class="card-title">商品カタログ（${products.length}件）</h2>
             <div class="filters">
               <div class="filter-group">
                 <label class="form-label">メーカー</label>
-                <select class="form-select" id="filter-manufacturer" onchange="app.renderCatalog()">
+                <select class="form-select" id="filter-manufacturer" onchange="app.renderCatalog(true)">
                   <option value="">すべて</option>
-                  ${MANUFACTURERS.map(m => `<option value="${m}">${m}</option>`).join('')}
+                  ${MANUFACTURERS.map(m => `<option value="${m}" ${savedFilters.manufacturer === m ? 'selected' : ''}>${m}</option>`).join('')}
                 </select>
               </div>
               <div class="filter-group">
                 <label class="form-label">カテゴリ</label>
-                <select class="form-select" id="filter-category" onchange="app.renderCatalog()">
+                <select class="form-select" id="filter-category" onchange="app.renderCatalog(true)">
                   <option value="">すべて</option>
-                  ${CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+                  ${CATEGORIES.map(c => `<option value="${c}" ${savedFilters.category === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
               </div>
               <div class="filter-group">
                 <label class="form-label">並び替え</label>
-                <select class="form-select" id="sort-order" onchange="app.renderCatalog()">
-                  <option value="date-desc">登録日時（新しい順）</option>
-                  <option value="date-asc">登録日時（古い順）</option>
-                  <option value="price-asc">価格（安い順）</option>
-                  <option value="price-desc">価格（高い順）</option>
+                <select class="form-select" id="sort-order" onchange="app.renderCatalog(true)">
+                  <option value="date-desc" ${savedFilters.sortOrder === 'date-desc' || !savedFilters.sortOrder ? 'selected' : ''}>登録日時（新しい順）</option>
+                  <option value="date-asc" ${savedFilters.sortOrder === 'date-asc' ? 'selected' : ''}>登録日時（古い順）</option>
+                  <option value="price-asc" ${savedFilters.sortOrder === 'price-asc' ? 'selected' : ''}>価格（安い順）</option>
+                  <option value="price-desc" ${savedFilters.sortOrder === 'price-desc' ? 'selected' : ''}>価格（高い順）</option>
                 </select>
               </div>
               <div class="search-box">
                 <label class="form-label">検索</label>
-                <input type="text" class="search-input" id="search-input" placeholder="商品名・メーカー名で検索" oninput="app.renderCatalog()">
+                <input type="text" class="search-input" id="search-input" placeholder="商品名・メーカー名で検索" value="${savedFilters.search || ''}" oninput="app.renderCatalog(true)">
               </div>
             </div>
             <div class="product-grid">
               ${this.filterAndSortProducts(products).map(p => `
-                <div class="product-card" onclick="app.navigate('#detail/product/${escapeHtml(p.id)}')">
+                <div class="product-card" onclick="app.navigate('#detail/product/${p.id}')">
                   <div class="product-card-image">
                     ${p.imageBase64
                       ? `<img src="data:${escapeHtml(p.imageMime)};base64,${p.imageBase64}" alt="${escapeHtml(p.productName)}">`
@@ -1926,7 +1952,7 @@
 
             ${this.currentUser.role === 'wholesaler' ? `
               <div class="detail-section">
-                <button class="btn btn-success btn-block" onclick="app.showQuoteRequestModal('${escapeHtml(product.id)}')">この商品に見積依頼を送る</button>
+                <button class="btn btn-success btn-block" onclick="app.showQuoteRequestModal('${product.id}')">この商品に見積依頼を送る</button>
               </div>
             ` : ''}
           </div>
@@ -2021,7 +2047,7 @@
               </form>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-success" onclick="app.submitQuoteRequest('${escapeHtml(productId)}')">見積依頼を送信</button>
+              <button class="btn btn-success" onclick="app.submitQuoteRequest('${productId}')">見積依頼を送信</button>
               <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">キャンセル</button>
             </div>
           </div>
@@ -2076,13 +2102,23 @@
       // ========================
       // Requests Sent (Wholesaler)
       // ========================
-      renderRequestsSent() {
+      renderRequestsSent(preserveFilters = false) {
         if (!this.currentUser || this.currentUser.role !== 'wholesaler') {
           this.navigate('#login');
           return;
         }
 
         this.updateHeader();
+
+        // フィルター状態を保存
+        if (preserveFilters) {
+          this.filterState.requestsSent = {
+            status: document.getElementById('filter-status')?.value || '',
+            manufacturer: document.getElementById('filter-manufacturer')?.value || '',
+            search: document.getElementById('search-input')?.value || ''
+          };
+        }
+
         const requests = dataStore.getQuoteRequests()
           .filter(r => r.wholesalerName === this.currentUser.company)
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -2102,28 +2138,30 @@
           return;
         }
 
+        const savedFilters = this.filterState.requestsSent || {};
+
         main.innerHTML = `
           <div class="card">
             <h2 class="card-title">送信済み見積依頼（${requests.length}件）</h2>
             <div class="filters">
               <div class="filter-group">
                 <label class="form-label">ステータス</label>
-                <select class="form-select" id="filter-status" onchange="app.renderRequestsSent()">
+                <select class="form-select" id="filter-status" onchange="app.renderRequestsSent(true)">
                   <option value="">すべて</option>
-                  <option value="pending">依頼中</option>
-                  <option value="quoted">見積受領済</option>
+                  <option value="pending" ${savedFilters.status === 'pending' ? 'selected' : ''}>依頼中</option>
+                  <option value="quoted" ${savedFilters.status === 'quoted' ? 'selected' : ''}>見積受領済</option>
                 </select>
               </div>
               <div class="filter-group">
                 <label class="form-label">メーカー</label>
-                <select class="form-select" id="filter-manufacturer" onchange="app.renderRequestsSent()">
+                <select class="form-select" id="filter-manufacturer" onchange="app.renderRequestsSent(true)">
                   <option value="">すべて</option>
-                  ${MANUFACTURERS.map(m => `<option value="${m}">${m}</option>`).join('')}
+                  ${MANUFACTURERS.map(m => `<option value="${m}" ${savedFilters.manufacturer === m ? 'selected' : ''}>${m}</option>`).join('')}
                 </select>
               </div>
               <div class="search-box">
                 <label class="form-label">検索</label>
-                <input type="text" class="search-input" id="search-input" placeholder="商品名・メーカー名で検索" oninput="app.renderRequestsSent()">
+                <input type="text" class="search-input" id="search-input" placeholder="商品名・メーカー名で検索" value="${savedFilters.search || ''}" oninput="app.renderRequestsSent(true)">
               </div>
             </div>
             <div class="table-container">
@@ -2155,7 +2193,7 @@
                           }
                         </td>
                         <td>
-                          <button class="btn btn-primary" onclick="app.navigate('#detail/request/${escapeHtml(r.id)}')">詳細</button>
+                          <button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細</button>
                         </td>
                       </tr>
                     `;
@@ -2350,7 +2388,7 @@
               </form>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-success" onclick="app.submitQuote('${escapeHtml(requestId)}')">見積書を送信</button>
+              <button class="btn btn-success" onclick="app.submitQuote('${requestId}')">見積書を送信</button>
               <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">キャンセル</button>
             </div>
           </div>
