@@ -909,6 +909,16 @@
       return String(text).replace(/[&<>"']/g, m => map[m]);
     }
 
+    function escapeJsString(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+    }
+
     function uuid() {
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         const r = Math.random() * 16 | 0;
@@ -1924,7 +1934,7 @@
               <div class="detail-section">
                 <div class="detail-label">添付資料</div>
                 <div class="file-list">
-                  ${product.attachments.map(file => `
+                  ${product.attachments.map((file, fileIndex) => `
                     <div class="file-item">
                       <div class="file-info">
                         <div class="file-icon">${file.mime.includes('pdf') ? '📕' : '📊'}</div>
@@ -1935,9 +1945,9 @@
                       </div>
                       <div class="file-actions">
                         ${file.filename.endsWith('.csv') ? `
-                          <button class="btn btn-outline" onclick="app.previewCsv('${file.base64}', '${escapeHtml(file.filename)}')">プレビュー</button>
+                          <button class="btn btn-outline" onclick="app.previewProductFile('${product.id}', ${fileIndex})">プレビュー</button>
                         ` : ''}
-                        <button class="btn btn-primary" onclick="downloadFile('${file.base64}', '${escapeHtml(file.filename)}', '${escapeHtml(file.mime)}')">ダウンロード</button>
+                        <button class="btn btn-primary" onclick="app.downloadProductFile('${product.id}', ${fileIndex})">ダウンロード</button>
                       </div>
                     </div>
                   `).join('')}
@@ -1959,8 +1969,15 @@
         `;
       },
 
-      previewCsv(base64, filename) {
-        const text = atob(base64);
+      previewProductFile(productId, fileIndex) {
+        const product = dataStore.getProduct(productId);
+        if (!product || !product.attachments || !product.attachments[fileIndex]) {
+          showToast('ファイルが見つかりません', 'error');
+          return;
+        }
+
+        const file = product.attachments[fileIndex];
+        const text = atob(file.base64);
         const csvData = parseCsv(text);
 
         const modal = document.createElement('div');
@@ -1968,7 +1985,7 @@
         modal.innerHTML = `
           <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-header">
-              <h3 class="modal-title">CSVプレビュー: ${escapeHtml(filename)}</h3>
+              <h3 class="modal-title">CSVプレビュー: ${escapeHtml(file.filename)}</h3>
               <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
             </div>
             <div class="modal-body">
@@ -1991,7 +2008,7 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-primary" onclick="downloadFile('${base64}', '${escapeHtml(filename)}', 'text/csv')">ダウンロード</button>
+              <button class="btn btn-primary" onclick="app.downloadProductFile('${productId}', ${fileIndex})">ダウンロード</button>
               <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">閉じる</button>
             </div>
           </div>
@@ -2009,6 +2026,17 @@
         });
 
         document.body.appendChild(modal);
+      },
+
+      downloadProductFile(productId, fileIndex) {
+        const product = dataStore.getProduct(productId);
+        if (!product || !product.attachments || !product.attachments[fileIndex]) {
+          showToast('ファイルが見つかりません', 'error');
+          return;
+        }
+
+        const file = product.attachments[fileIndex];
+        downloadFile(file.base64, file.filename, file.mime);
       },
 
       showQuoteRequestModal(productId) {
@@ -2319,31 +2347,31 @@
             ${quotes.length > 0 ? `
               <div class="detail-section">
                 <div class="detail-label">見積書</div>
-                ${quotes.map(quote => `
+                ${quotes.map((quote, quoteIndex) => `
                   <div style="margin-bottom: 1rem; padding: 1rem; background: #f9fafb; border-radius: 0.375rem;">
                     <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem;">
                       提出日時: ${formatDate(quote.uploadedAt)}
                     </div>
                     ${quote.memo ? `
                       <div style="margin-bottom: 0.75rem;">
-                        <strong>メモ:</strong> ${quote.memo}
+                        <strong>メモ:</strong> ${escapeHtml(quote.memo)}
                       </div>
                     ` : ''}
                     <div class="file-list">
-                      ${quote.files.map(file => `
+                      ${quote.files.map((file, fileIndex) => `
                         <div class="file-item">
                           <div class="file-info">
                             <div class="file-icon">${file.mime.includes('pdf') ? '📕' : '📊'}</div>
                             <div class="file-details">
-                              <div class="file-name">${file.filename}</div>
+                              <div class="file-name">${escapeHtml(file.filename)}</div>
                               <div class="file-size">${formatFileSize(file.size)}</div>
                             </div>
                           </div>
                           <div class="file-actions">
                             ${file.filename.endsWith('.csv') ? `
-                              <button class="btn btn-outline" onclick="app.previewCsv('${file.base64}', '${file.filename}')">プレビュー</button>
+                              <button class="btn btn-outline" onclick="app.previewQuoteFile('${id}', ${quoteIndex}, ${fileIndex})">プレビュー</button>
                             ` : ''}
-                            <button class="btn btn-primary" onclick="downloadFile('${file.base64}', '${file.filename}', '${file.mime}')">ダウンロード</button>
+                            <button class="btn btn-primary" onclick="app.downloadQuoteFile('${id}', ${quoteIndex}, ${fileIndex})">ダウンロード</button>
                           </div>
                         </div>
                       `).join('')}
@@ -2354,6 +2382,76 @@
             ` : ''}
           </div>
         `;
+      },
+
+      previewQuoteFile(requestId, quoteIndex, fileIndex) {
+        const quotes = dataStore.getQuotesByRequest(requestId);
+        if (!quotes || !quotes[quoteIndex] || !quotes[quoteIndex].files || !quotes[quoteIndex].files[fileIndex]) {
+          showToast('ファイルが見つかりません', 'error');
+          return;
+        }
+
+        const file = quotes[quoteIndex].files[fileIndex];
+        const text = atob(file.base64);
+        const csvData = parseCsv(text);
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+          <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+              <h3 class="modal-title">CSVプレビュー: ${escapeHtml(file.filename)}</h3>
+              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+              <div class="csv-preview">
+                <table>
+                  <thead>
+                    <tr>
+                      ${csvData.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${csvData.rows.slice(0, 100).map(row => `
+                      <tr>
+                        ${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+                ${csvData.rows.length > 100 ? `<p class="mt-2 text-center" style="color: #6b7280;">※先頭100行のみ表示しています</p>` : ''}
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-primary" onclick="app.downloadQuoteFile('${requestId}', ${quoteIndex}, ${fileIndex})">ダウンロード</button>
+              <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">閉じる</button>
+            </div>
+          </div>
+        `;
+
+        modal.onclick = (e) => {
+          if (e.target === modal) modal.remove();
+        };
+
+        document.addEventListener('keydown', function escHandler(e) {
+          if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', escHandler);
+          }
+        });
+
+        document.body.appendChild(modal);
+      },
+
+      downloadQuoteFile(requestId, quoteIndex, fileIndex) {
+        const quotes = dataStore.getQuotesByRequest(requestId);
+        if (!quotes || !quotes[quoteIndex] || !quotes[quoteIndex].files || !quotes[quoteIndex].files[fileIndex]) {
+          showToast('ファイルが見つかりません', 'error');
+          return;
+        }
+
+        const file = quotes[quoteIndex].files[fileIndex];
+        downloadFile(file.base64, file.filename, file.mime);
       },
 
       showQuoteUploadModal(requestId) {
