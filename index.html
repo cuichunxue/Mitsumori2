@@ -1659,6 +1659,9 @@
         main.innerHTML = `
           <div class="card">
             <h2 class="card-title">受信見積依頼（${requests.length}件）</h2>
+            <div style="padding: 0.75rem 1rem; background-color: #fef3c7; border-radius: 0.5rem; margin-bottom: 1.5rem; border-left: 4px solid #f59e0b;">
+              <strong>💡 見積書の送り方：</strong> 未対応の依頼の「📄 見積書を送る」ボタンをクリックして、CSV・PDFファイルをアップロードしてください。
+            </div>
             <div class="filters">
               <div class="filter-group">
                 <label class="form-label">ステータス</label>
@@ -1694,19 +1697,22 @@
                 </thead>
                 <tbody>
                   ${this.filterRequests(requests).map(r => `
-                    <tr>
+                    <tr ${r.status === 'pending' ? 'style="background-color: #fef3c7;"' : ''}>
                       <td>${escapeHtml(r.id.substring(0, 8))}</td>
-                      <td>${escapeHtml(r.productName)}</td>
+                      <td><strong>${escapeHtml(r.productName)}</strong></td>
                       <td>${escapeHtml(r.wholesalerName)}</td>
                       <td>${formatDate(r.createdAt)}</td>
                       <td>
                         ${r.status === 'pending'
-                          ? '<span class="badge badge-warning">未対応</span>'
-                          : '<span class="badge badge-success">見積提出済</span>'
+                          ? '<span class="badge badge-warning">🔔 未対応</span>'
+                          : '<span class="badge badge-success">✓ 見積提出済</span>'
                         }
                       </td>
                       <td>
-                        <button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細</button>
+                        ${r.status === 'pending'
+                          ? `<button class="btn btn-success" onclick="app.showQuoteUploadModal('${r.id}')" style="font-weight: bold;">📄 見積書を送る</button>`
+                          : `<button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細を見る</button>`
+                        }
                       </td>
                     </tr>
                   `).join('')}
@@ -2455,15 +2461,30 @@
       },
 
       showQuoteUploadModal(requestId) {
+        const request = dataStore.getQuoteRequest(requestId);
+        if (!request) {
+          showToast('見積依頼が見つかりません', 'error');
+          return;
+        }
+
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.innerHTML = `
           <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-header">
-              <h3 class="modal-title">見積書アップロード</h3>
+              <h3 class="modal-title">📄 見積書を送信</h3>
               <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
             </div>
             <div class="modal-body">
+              <div style="padding: 1rem; background-color: #eff6ff; border-radius: 0.5rem; margin-bottom: 1.5rem; border-left: 4px solid #2563eb;">
+                <div style="font-weight: bold; margin-bottom: 0.5rem;">📋 見積依頼情報</div>
+                <div style="font-size: 0.875rem; color: #1e40af;">
+                  <div><strong>商品:</strong> ${escapeHtml(request.productName)}</div>
+                  <div><strong>問屋:</strong> ${escapeHtml(request.wholesalerName)}</div>
+                  <div><strong>希望数量:</strong> ${request.quantity.toLocaleString()}個</div>
+                  ${request.dueDate ? `<div><strong>希望納期:</strong> ${request.dueDate}</div>` : ''}
+                </div>
+              </div>
               <form id="quote-upload-form">
                 <div class="form-group">
                   <label class="form-label">見積書ファイル（CSV/PDF）<span class="form-required">*</span></label>
@@ -2474,19 +2495,21 @@
                        onclick="document.getElementById('quote-files-input').click()">
                     <div class="dropzone-icon">📄</div>
                     <div class="dropzone-text">クリックまたはドラッグ&ドロップでファイルを追加</div>
-                    <div class="dropzone-hint">CSV, PDF (各最大10MB、複数可)</div>
+                    <div class="dropzone-hint">CSV, PDF (各最大10MB、複数ファイル可)</div>
                   </div>
                   <input type="file" id="quote-files-input" class="hidden" accept=".csv,.pdf" multiple onchange="app.handleQuoteFilesSelect(event)">
                   <div id="quote-files-list" class="file-list"></div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">メモ（任意）</label>
-                  <textarea class="form-textarea" id="quote-memo"></textarea>
+                  <textarea class="form-textarea" id="quote-memo" placeholder="見積内容についての補足説明があれば入力してください"></textarea>
                 </div>
               </form>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-success" onclick="app.submitQuote('${requestId}')">見積書を送信</button>
+              <button class="btn btn-success" onclick="app.submitQuote('${requestId}')" style="font-weight: bold; font-size: 1.1rem; padding: 0.875rem 2rem;">
+                ✓ ${escapeHtml(request.wholesalerName)} へ送信
+              </button>
               <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">キャンセル</button>
             </div>
           </div>
@@ -2577,6 +2600,7 @@
           return;
         }
 
+        const request = dataStore.getQuoteRequest(requestId);
         const memo = document.getElementById('quote-memo').value;
 
         const quote = {
@@ -2591,9 +2615,14 @@
         dataStore.addQuote(quote);
         dataStore.updateQuoteRequest(requestId, { status: 'quoted' });
 
-        showToast('見積書を送信しました', 'success');
+        showToast(`✓ ${request.wholesalerName} へ見積書を送信しました（${this.quoteUploadFiles.length}ファイル）`, 'success');
         document.querySelector('.modal-overlay').remove();
-        this.navigate('#detail/request/' + requestId);
+
+        // 受信見積依頼画面に戻る
+        this.navigate('#requests/inbox');
+
+        // ヘッダーを更新して未読バッジを反映
+        setTimeout(() => this.updateHeader(), 100);
       }
     };
 
