@@ -1760,22 +1760,23 @@
       getQuotesByRequest(requestId) {
         return this.getQuotes().filter(q => q.requestId === requestId);
       },
-      deleteQuote(requestId, quoteIndex) {
-        const quotes = this.getQuotes();
-        const requestQuotes = quotes.filter(q => q.requestId === requestId);
-        if (requestQuotes[quoteIndex]) {
-          const quoteToDelete = requestQuotes[quoteIndex];
-          const newQuotes = quotes.filter(q => q !== quoteToDelete);
-          this.saveQuotes(newQuotes);
+      deleteQuoteRequest(requestId) {
+        // Delete the request
+        const requests = this.getQuoteRequests();
+        const newRequests = requests.filter(r => r.id !== requestId);
+        this.saveQuoteRequests(newRequests);
 
-          // If no more quotes for this request, update request status to pending
-          const remainingQuotes = newQuotes.filter(q => q.requestId === requestId);
-          if (remainingQuotes.length === 0) {
-            this.updateQuoteRequest(requestId, { status: 'pending' });
-          }
-          return true;
-        }
-        return false;
+        // Delete all related quotes
+        const quotes = this.getQuotes();
+        const newQuotes = quotes.filter(q => q.requestId !== requestId);
+        this.saveQuotes(newQuotes);
+
+        // Delete related read status
+        const statuses = this.getReadStatus();
+        const newStatuses = statuses.filter(s => s.requestId !== requestId);
+        this.saveReadStatus(newStatuses);
+
+        return true;
       },
 
       getReadStatus() {
@@ -2886,7 +2887,10 @@
                           }
                         </td>
                         <td>
-                          <button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細</button>
+                          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細</button>
+                            <button class="btn btn-danger" onclick="app.deleteRequest('${r.id}')">削除</button>
+                          </div>
                         </td>
                       </tr>
                     `;
@@ -3013,14 +3017,9 @@
               <div class="detail-section">
                 <div class="detail-label">見積書</div>
                 ${quotes.map((quote, quoteIndex) => `
-                  <div style="margin-bottom: 1rem; padding: 1rem; background: #f9fafb; border-radius: 0.375rem; position: relative;">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                      <div style="font-size: 0.875rem; color: #6b7280;">
-                        提出日時: ${formatDate(quote.uploadedAt)}
-                      </div>
-                      ${isWholesaler ? `
-                        <button class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="app.deleteQuote('${id}', ${quoteIndex})">削除</button>
-                      ` : ''}
+                  <div style="margin-bottom: 1rem; padding: 1rem; background: #f9fafb; border-radius: 0.375rem;">
+                    <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem;">
+                      提出日時: ${formatDate(quote.uploadedAt)}
                     </div>
                     ${quote.memo ? `
                       <div style="margin-bottom: 0.75rem;">
@@ -3048,6 +3047,12 @@
                     </div>
                   </div>
                 `).join('')}
+              </div>
+            ` : ''}
+
+            ${isWholesaler ? `
+              <div class="detail-section">
+                <button class="btn btn-danger btn-block" onclick="app.deleteRequest('${id}')">この見積依頼を削除</button>
               </div>
             ` : ''}
           </div>
@@ -3124,17 +3129,17 @@
         downloadFile(file.base64, file.filename, file.mime);
       },
 
-      deleteQuote(requestId, quoteIndex) {
-        if (!confirm('この見積書を削除してもよろしいですか？')) {
+      deleteRequest(requestId) {
+        if (!confirm('この見積依頼を削除してもよろしいですか？\n関連する見積書も全て削除されます。')) {
           return;
         }
 
-        if (dataStore.deleteQuote(requestId, quoteIndex)) {
-          showToast('見積書を削除しました', 'success');
-          this.renderRequestDetail(requestId);
+        if (dataStore.deleteQuoteRequest(requestId)) {
+          showToast('見積依頼を削除しました', 'success');
+          this.navigate('#requests/sent');
           this.updateHeader(); // Update unread count
         } else {
-          showToast('見積書の削除に失敗しました', 'error');
+          showToast('見積依頼の削除に失敗しました', 'error');
         }
       },
 
