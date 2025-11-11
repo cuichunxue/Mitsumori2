@@ -2790,7 +2790,13 @@
         showToast('見積依頼を送信しました', 'success');
 
         document.querySelector('.modal-overlay').remove();
-        this.navigate('#requests/sent');
+
+        // Force re-render even if already on the same page
+        if (window.location.hash === '#requests/sent') {
+          this.renderRequestsSent();
+        } else {
+          this.navigate('#requests/sent');
+        }
       },
 
       // ========================
