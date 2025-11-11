@@ -1507,7 +1507,7 @@
   <div class="app-container">
     <header id="app-header" class="hidden">
       <div class="header-content">
-        <div class="logo">🍬 お菓子業界管理システム</div>
+        <div class="logo">🍰 お菓子業界管理システム</div>
         <nav class="nav-tabs" id="nav-tabs"></nav>
         <div class="user-info">
           <div class="user-badge" id="user-badge"></div>
@@ -1925,7 +1925,7 @@
         const main = document.getElementById('main-content');
         main.innerHTML = `
           <div class="login-container">
-            <h1 class="login-title">🍬 お菓子業界管理システム</h1>
+            <h1 class="login-title">🍰 お菓子業界管理システム</h1>
             <form onsubmit="app.handleLogin(event)">
               <div class="form-group">
                 <label class="form-label">ロール選択<span class="form-required">*</span></label>
@@ -2887,7 +2887,7 @@
                           }
                         </td>
                         <td>
-                          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                          <div style="display: flex; gap: 0.5rem; align-items: center;">
                             <button class="btn btn-primary" onclick="app.navigate('#detail/request/${r.id}')">詳細</button>
                             <button class="btn btn-danger" onclick="app.deleteRequest('${r.id}')">削除</button>
                           </div>
